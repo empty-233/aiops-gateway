@@ -1,0 +1,22 @@
+server:
+  port: 8080
+  mode: debug
+
+ai:
+  api_key: "YOUR_API_KEY"
+  model: "claude-sonnet-4-20250514"
+  prompt: "System load above 80% or disk IO above 90%"
+  historyCount: 5
+
+database:
+  dsn: "data/log-analyzer.db"
+
+query:
+  query_range_time: 1h
+  query_step: 1m
+
+sources:
+  - label_key: "job"
+    label_value: "syslog"
+    type: file
+    path: "/var/log/syslog"

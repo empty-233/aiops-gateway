@@ -1,0 +1,35 @@
+# Build output
+/bin/
+/dist/
+/build/
+
+# Dependencies (if used)
+/vendor/
+
+# Logs
+*.log
+
+# IDE/editor
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Env files
+.env
+.env.*
+
+# Go workspace
+/go.work
+/go.work.sum
+
+# database files
+*.db
+
+# config files
+configs/config.yaml
+
+# temp
+temp/
