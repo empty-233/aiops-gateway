@@ -34,7 +34,7 @@ func main() {
 	analyzer := service.NewAIAnalyzer(
 		cfg.AI,
 		cfg.Query,
-		cfg.Sources,
+		cfg.Logs,
 		alertRepo,
 	)
 	alertService := service.NewAlertService(analyzer, alertRepo, logger)

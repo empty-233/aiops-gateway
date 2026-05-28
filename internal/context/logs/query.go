@@ -19,7 +19,7 @@ func NewClient(source Source) *Client {
 func (c *Client) Query(ctx context.Context, options *Options) (string, error) {
 	switch c.source.Type {
 	case SourceFile:
-		file, err := NewFileReader().Read(ctx, c.source.Path, options)
+		file, err := NewFileReader().Read(ctx, c.source.Path, c.source.MaxLines, options)
 		if err != nil {
 			return "", fmt.Errorf("读取日志失败: %w", err)
 		}

@@ -2,8 +2,8 @@ package config
 
 import (
 	"fmt"
-	"time"
 	"strings"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -13,7 +13,7 @@ type Config struct {
 	AI       AIConfig       `mapstructure:"ai"`
 	Database DatabaseConfig `mapstructure:"database"`
 	Query    QueryConfig    `mapstructure:"query"`
-	Sources  []SourceConfig `mapstructure:"sources"`
+	Logs     LogsConfig     `mapstructure:"logs"`
 }
 
 type ServerConfig struct {
@@ -34,6 +34,11 @@ type QueryConfig struct {
 
 type DatabaseConfig struct {
 	DSN string `mapstructure:"dsn"`
+}
+
+type LogsConfig struct {
+	MaxLines int            `mapstructure:"max_lines"`
+	Source   []SourceConfig `mapstructure:"sources"`
 }
 
 type SourceConfig struct {

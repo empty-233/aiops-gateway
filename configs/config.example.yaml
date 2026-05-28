@@ -15,8 +15,10 @@ query:
   query_range_time: 1h
   query_step: 1m
 
-sources:
-  - label_key: "job"
-    label_value: "syslog"
-    type: file
-    path: "/var/log/syslog"
+logs:
+  max_lines: 50
+  sources:
+    - label_key: "job"
+      label_value: "syslog"
+      type: file
+      path: "/var/log/syslog"

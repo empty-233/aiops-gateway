@@ -14,18 +14,18 @@ import (
 )
 
 type AIAnalyzer struct {
-	aiConfig     config.AIConfig
-	queryConfig  config.QueryConfig
-	sourceConfig []config.SourceConfig
-	alertRepo    AlertRepository
+	aiConfig    config.AIConfig
+	queryConfig config.QueryConfig
+	logConfig   config.LogsConfig
+	alertRepo   AlertRepository
 }
 
-func NewAIAnalyzer(aiConfig config.AIConfig, queryConfig config.QueryConfig, sourceConfig []config.SourceConfig, alertRepo AlertRepository) *AIAnalyzer {
+func NewAIAnalyzer(aiConfig config.AIConfig, queryConfig config.QueryConfig, logConfig config.LogsConfig, alertRepo AlertRepository) *AIAnalyzer {
 	return &AIAnalyzer{
-		aiConfig:     aiConfig,
-		queryConfig:  queryConfig,
-		sourceConfig: sourceConfig,
-		alertRepo:    alertRepo,
+		aiConfig:    aiConfig,
+		queryConfig: queryConfig,
+		logConfig:   logConfig,
+		alertRepo:   alertRepo,
 	}
 }
 
@@ -117,9 +117,7 @@ func (a *AIAnalyzer) buildPrompt(ctx context.Context, payload *model.AlertPayloa
 
 		sb.WriteString("\n")
 
-		sb.WriteString("相关日志：\n")
-
-		matchSources := matchSources(alert, a.sourceConfig)
+		matchSources := matchSources(alert, a.logConfig.Source)
 		if len(matchSources) == 0 {
 			continue
 		}
@@ -127,8 +125,9 @@ func (a *AIAnalyzer) buildPrompt(ctx context.Context, payload *model.AlertPayloa
 		var stringLog strings.Builder
 		for _, source := range matchSources {
 			logClient := logs.NewClient(logs.Source{
-				Type: logs.SourceType(source.Type),
-				Path: source.Path,
+				Type:     logs.SourceType(source.Type),
+				Path:     source.Path,
+				MaxLines: a.logConfig.MaxLines,
 			})
 			logQuery, err := logClient.Query(ctx, logOptions)
 			if err != nil {

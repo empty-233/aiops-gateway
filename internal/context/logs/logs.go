@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 )
@@ -22,7 +22,7 @@ func NewFileReader() *FileReader {
 	return &FileReader{}
 }
 
-func (r *FileReader) Read(ctx context.Context, path string, options *Options) ([]LogEntry, error) {
+func (r *FileReader) Read(ctx context.Context, path string, maxLines int, options *Options) ([]LogEntry, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
@@ -50,6 +50,7 @@ func (r *FileReader) Read(ctx context.Context, path string, options *Options) ([
 		allHaveTime  = true
 	)
 
+outer:
 	for offset > 0 && readBytes < maxSize && !reachedStart {
 		select {
 		case <-ctx.Done():
@@ -66,20 +67,22 @@ func (r *FileReader) Read(ctx context.Context, path string, options *Options) ([
 			readSize = maxSize - readBytes
 		}
 
+		if readSize <= 0 {
+			break
+		}
+
 		offset -= readSize
 		readBytes += readSize
 
 		buf := make([]byte, int(readSize))
 
-		_, err := file.ReadAt(buf, offset)
+		n, err := file.ReadAt(buf, offset)
 		if err != nil && !errors.Is(err, io.EOF) {
 			return nil, err
 		}
+		buf = buf[:n]
 
-		chunk := string(buf)
-
-		chunk = chunk + carry
-
+		chunk := string(buf) + carry
 		lines := strings.Split(chunk, "\n")
 
 		if offset > 0 {
@@ -98,32 +101,30 @@ func (r *FileReader) Read(ctx context.Context, path string, options *Options) ([
 			logTime, ok := parseLogTime(line)
 			if !ok {
 				allHaveTime = false
+				results = append(results, LogEntry{Message: line})
+			} else {
+				if logTime.After(options.EndTime) {
+					continue
+				}
+
+				if logTime.Before(options.StartTime) {
+					reachedStart = true
+					break
+				}
+
 				results = append(results, LogEntry{
+					Time:    logTime,
 					Message: line,
 				})
-				continue
 			}
-
-			if logTime.After(options.EndTime) {
-				continue
+			if maxLines > 0 && len(results) >= maxLines {
+				break outer
 			}
-
-			if logTime.Before(options.StartTime) {
-				reachedStart = true
-				break
-			}
-
-			results = append(results, LogEntry{
-				Time:    logTime,
-				Message: line,
-			})
 		}
 	}
 
 	if allHaveTime {
-		sort.Slice(results, func(i, j int) bool {
-			return results[i].Time.Before(results[j].Time)
-		})
+		slices.Reverse(results)
 	} else {
 		fmt.Printf("Warning: 日志文件 %s 中部分行缺少时间戳，无法保证日志顺序\n", path)
 	}

@@ -10,4 +10,5 @@ const (
 type Source struct {
 	Type SourceType
 	Path string
+	MaxLines int
 }

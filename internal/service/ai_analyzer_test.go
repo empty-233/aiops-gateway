@@ -45,7 +45,7 @@ func TestAIAnalyzerAnalyzeSuccess(t *testing.T) {
 		APIKey:  "test-key",
 		BaseURL: "http://example.com",
 		Model:   "test-model",
-	}, config.QueryConfig{}, nil, nil)
+	}, config.QueryConfig{}, config.LogsConfig{}, nil)
 	result, err := analyzer.Analyze(context.Background(), buildTestAlertPayload())
 
 	assert.NoError(t, err)
@@ -55,7 +55,7 @@ func TestAIAnalyzerAnalyzeSuccess(t *testing.T) {
 
 // TestAIAnalyzerBuildPrompt_SkipWithoutGeneratorURL generatorURL 为空时跳过 PromQL 查询
 func TestAIAnalyzerBuildPrompt_SkipWithoutGeneratorURL(t *testing.T) {
-	analyzer := NewAIAnalyzer(config.AIConfig{}, config.QueryConfig{}, nil, nil)
+	analyzer := NewAIAnalyzer(config.AIConfig{}, config.QueryConfig{}, config.LogsConfig{}, nil)
 	prompt, err := analyzer.buildPrompt(context.Background(), buildTestAlertPayload())
 
 	assert.NoError(t, err)
@@ -66,7 +66,7 @@ func TestAIAnalyzerBuildPrompt_SkipWithoutGeneratorURL(t *testing.T) {
 
 // TestAIAnalyzerBuildPrompt_InvalidPromQL PromQL 为空时返回错误
 func TestAIAnalyzerBuildPrompt_InvalidPromQL(t *testing.T) {
-	analyzer := NewAIAnalyzer(config.AIConfig{}, config.QueryConfig{}, nil, nil)
+	analyzer := NewAIAnalyzer(config.AIConfig{}, config.QueryConfig{}, config.LogsConfig{}, nil)
 	payload := buildTestAlertPayloadWithGeneratorURL("http://prometheus:9090/graph?g0.expr=&g0.tab=1")
 
 	_, err := analyzer.buildPrompt(context.Background(), payload)
@@ -76,7 +76,7 @@ func TestAIAnalyzerBuildPrompt_InvalidPromQL(t *testing.T) {
 }
 
 func TestAIAnalyzerCallPreviewMax50Chars(t *testing.T) {
-	analyzer := NewAIAnalyzer(config.AIConfig{}, config.QueryConfig{}, nil, nil)
+	analyzer := NewAIAnalyzer(config.AIConfig{}, config.QueryConfig{}, config.LogsConfig{}, nil)
 	prompt := strings.Repeat("a", 60)
 
 	result, err := analyzer.call(context.Background(), prompt)
