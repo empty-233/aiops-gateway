@@ -6,7 +6,8 @@ ai:
   api_key: "YOUR_API_KEY"
   model: "claude-sonnet-4-20250514"
   prompt: "System load above 80% or disk IO above 90%"
-  historyCount: 5
+  timeout: 30s
+  temperature: 0.9
 
 database:
   dsn: "data/log-analyzer.db"

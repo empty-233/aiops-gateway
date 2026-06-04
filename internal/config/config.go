@@ -25,6 +25,8 @@ type AIConfig struct {
 	APIKey  string `mapstructure:"api_key"`
 	BaseURL string `mapstructure:"base_url"`
 	Model   string `mapstructure:"model"`
+	Timeout time.Duration `mapstructure:"timeout"`
+	Temperature float64 `mapstructure:"temperature"`
 }
 
 type QueryConfig struct {
