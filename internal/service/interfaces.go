@@ -9,7 +9,7 @@ import (
 )
 
 type Analyzer interface {
-	Analyze(ctx context.Context, payload *model.AlertPayload) (string, error)
+	Analyze(ctx context.Context, payload *model.AlertPayload) (*model.AnalysisResult, error)
 }
 
 type AlertRepository interface {
