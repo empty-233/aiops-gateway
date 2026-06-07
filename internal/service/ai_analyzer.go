@@ -9,6 +9,7 @@ import (
 
 	"aiops-gateway/internal/config"
 	"aiops-gateway/internal/context/logs"
+	"aiops-gateway/internal/llm"
 	"aiops-gateway/internal/model"
 	"aiops-gateway/internal/prometheus"
 )
@@ -18,26 +19,28 @@ type AIAnalyzer struct {
 	queryConfig config.QueryConfig
 	logConfig   config.LogsConfig
 	alertRepo   AlertRepository
+	llmClient   llm.JSONChatClient
 }
 
-func NewAIAnalyzer(aiConfig config.AIConfig, queryConfig config.QueryConfig, logConfig config.LogsConfig, alertRepo AlertRepository) *AIAnalyzer {
+func NewAIAnalyzer(aiConfig config.AIConfig, queryConfig config.QueryConfig, logConfig config.LogsConfig, alertRepo AlertRepository, llmClient llm.JSONChatClient) *AIAnalyzer {
 	return &AIAnalyzer{
 		aiConfig:    aiConfig,
 		queryConfig: queryConfig,
 		logConfig:   logConfig,
 		alertRepo:   alertRepo,
+		llmClient:   llmClient,
 	}
 }
 
-func (a *AIAnalyzer) Analyze(ctx context.Context, payload *model.AlertPayload) (string, error) {
+func (a *AIAnalyzer) Analyze(ctx context.Context, payload *model.AlertPayload) (*model.AnalysisResult, error) {
 	prompt, err := a.buildPrompt(ctx, payload)
 	if err != nil {
-		return "", fmt.Errorf("构建 prompt 失败: %w", err)
+		return nil, fmt.Errorf("构建 prompt 失败: %w", err)
 	}
 
-	response, err := a.call(ctx, prompt)
+	response, err := a.call(ctx, prompt, a.aiConfig)
 	if err != nil {
-		return "", fmt.Errorf("调用 AI 失败: %w", err)
+		return nil, fmt.Errorf("调用 AI 失败: %w", err)
 	}
 
 	return response, nil
@@ -117,7 +120,7 @@ func (a *AIAnalyzer) buildPrompt(ctx context.Context, payload *model.AlertPayloa
 
 		sb.WriteString("\n")
 
-		matchSources := matchSources(alert, a.logConfig.Source)
+		matchSources := matchSources(alert, a.logConfig.Sources)
 		if len(matchSources) == 0 {
 			continue
 		}
@@ -147,7 +150,7 @@ func (a *AIAnalyzer) buildPrompt(ctx context.Context, payload *model.AlertPayloa
 
 	sb.WriteString("请给出：1. 问题判断 2. 可能原因 3. 处理建议")
 
-	fmt.Print(sb.String())
+	// fmt.Print(sb.String())
 
 	return sb.String(), nil
 }
@@ -168,9 +171,33 @@ func extractPrometheusAddress(generatorURL string) string {
 	return parsedURL.Scheme + "://" + parsedURL.Host
 }
 
-func (a *AIAnalyzer) call(ctx context.Context, prompt string) (string, error) {
-	preview := truncateRunes(prompt, 50)
-	return fmt.Sprintf("[待接入 AI] 收到 prompt，长度 %d 字符。\nprompt 预览：%s...", len(prompt), preview), nil
+func (a *AIAnalyzer) call(ctx context.Context, prompt string, cfg config.AIConfig) (*model.AnalysisResult, error) {
+	preview := truncateRunes(prompt, 3000)
+
+	timeout := a.aiConfig.Timeout
+	if timeout <= 0 {
+		timeout = 30 * time.Second
+	}
+
+	llmCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	msg := []llm.Message{
+		{
+			Role:    llm.RoleSystem,
+			Content: cfg.Prompt,
+		},
+		{
+			Role:    llm.RoleUser,
+			Content: preview,
+		},
+	}
+	resp, err := llm.ChatJSON[model.AnalysisResult](llmCtx, a.llmClient, msg)
+	if err != nil {
+		return nil, fmt.Errorf("LLM 调用失败: %w", err)
+	}
+
+	return &resp.Result, nil
 }
 
 func truncateRunes(s string, maxRunes int) string {

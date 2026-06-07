@@ -5,17 +5,22 @@ import (
 	"log"
 	"log/slog"
 	"os"
+	"context"
 
+	"aiops-gateway/internal/app"
 	"aiops-gateway/internal/config"
+	"aiops-gateway/internal/database"
 	"aiops-gateway/internal/handler"
 	"aiops-gateway/internal/repository"
 	"aiops-gateway/internal/service"
 
-	"aiops-gateway/internal/database"
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
+	appCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	cfg, err := config.Load("configs/config.yaml")
 	if err != nil {
 		log.Fatalf("配置加载失败: %v", err)
@@ -31,13 +36,20 @@ func main() {
 	}
 	alertRepo := repository.NewAlertRepository(db)
 
+	llmClient, err := app.NewLLMClient(cfg.AI)
+	if err != nil {
+		log.Fatalf("初始化 LLM client 失败: %v", err)
+	}
+
 	analyzer := service.NewAIAnalyzer(
 		cfg.AI,
 		cfg.Query,
 		cfg.Logs,
 		alertRepo,
+		llmClient,
 	)
-	alertService := service.NewAlertService(analyzer, alertRepo, logger)
+	alertService := service.NewAlertService(analyzer, alertRepo, logger, cfg.AI)
+	alertService.StartWorkers(appCtx)
 	webhookHandler := handler.NewWebhookHandler(alertService, logger)
 
 	gin.SetMode(cfg.Server.Mode)

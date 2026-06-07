@@ -23,11 +23,11 @@ type Client struct {
 func NewClient(cfg config.AIConfig) *Client {
 	timeout := cfg.Timeout
 	if timeout <= 0 {
-		timeout = 30 * time.Second
+		timeout = 60 * time.Second
 	}
 
 	opts := []option.RequestOption{
-		option.WithAPIKey(cfg.BaseURL),
+		option.WithAPIKey(cfg.APIKey),
 		option.WithRequestTimeout(timeout),
 	}
 
