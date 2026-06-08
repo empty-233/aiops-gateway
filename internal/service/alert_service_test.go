@@ -51,7 +51,7 @@ func newMultiPayload() *model.AlertPayload {
 
 // TestProcess_Success 正常流程：告警进入队列并返回结果
 func TestProcess_Success(t *testing.T) {
-	svc := service.NewAlertService(nil, nil, newTestLogger(), config.AIConfig{QueueSize: 1})
+	svc := service.NewAlertService(nil, nil, newTestLogger(), nil, config.AIConfig{QueueSize: 1})
 	result, err := svc.Process(context.Background(), newPayload("HighCPU", "critical"))
 
 	assert.NoError(t, err)
@@ -62,7 +62,7 @@ func TestProcess_Success(t *testing.T) {
 
 // TestProcess_QueueFull 队列满时返回降级结果
 func TestProcess_QueueFull(t *testing.T) {
-	svc := service.NewAlertService(nil, nil, newTestLogger(), config.AIConfig{QueueSize: 0})
+	svc := service.NewAlertService(nil, nil, newTestLogger(), nil, config.AIConfig{QueueSize: 0})
 	result, err := svc.Process(context.Background(), newPayload("HighCPU", "critical"))
 
 	assert.NoError(t, err)
@@ -73,7 +73,7 @@ func TestProcess_QueueFull(t *testing.T) {
 
 // TestProcess_MultipleAlerts 多条告警时返回正确计数
 func TestProcess_MultipleAlerts(t *testing.T) {
-	svc := service.NewAlertService(nil, nil, newTestLogger(), config.AIConfig{QueueSize: 1})
+	svc := service.NewAlertService(nil, nil, newTestLogger(), nil, config.AIConfig{QueueSize: 1})
 	result, err := svc.Process(context.Background(), newMultiPayload())
 
 	assert.NoError(t, err)
@@ -82,7 +82,7 @@ func TestProcess_MultipleAlerts(t *testing.T) {
 }
 
 func TestProcess_NilPayload(t *testing.T) {
-	svc := service.NewAlertService(nil, nil, newTestLogger(), config.AIConfig{QueueSize: 1})
+	svc := service.NewAlertService(nil, nil, newTestLogger(), nil, config.AIConfig{QueueSize: 1})
 	_, err := svc.Process(context.Background(), nil)
 
 	assert.Error(t, err)
@@ -90,7 +90,7 @@ func TestProcess_NilPayload(t *testing.T) {
 }
 
 func TestProcess_NilData(t *testing.T) {
-	svc := service.NewAlertService(nil, nil, newTestLogger(), config.AIConfig{QueueSize: 1})
+	svc := service.NewAlertService(nil, nil, newTestLogger(), nil, config.AIConfig{QueueSize: 1})
 	_, err := svc.Process(context.Background(), &model.AlertPayload{})
 
 	assert.Error(t, err)

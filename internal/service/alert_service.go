@@ -7,27 +7,30 @@ import (
 	"log/slog"
 	"sync"
 
-	"aiops-gateway/internal/model"
 	"aiops-gateway/internal/config"
+	"aiops-gateway/internal/model"
+	"aiops-gateway/internal/notify"
 )
 
 type AlertService struct {
-	analyzer  Analyzer
-	alertRepo AlertRepository
-	logger    *slog.Logger
-	aiConfig config.AIConfig
+	analyzer     Analyzer
+	alertRepo    AlertRepository
+	logger       *slog.Logger
+	notifyClient *notify.Service
+	aiConfig     config.AIConfig
 
 	queue chan model.AlertPayload
 	wg    sync.WaitGroup
 }
 
-func NewAlertService(analyzer Analyzer, alertRepo AlertRepository, logger *slog.Logger, aiConfig config.AIConfig) *AlertService {
+func NewAlertService(analyzer Analyzer, alertRepo AlertRepository, logger *slog.Logger, notifyClient *notify.Service, aiConfig config.AIConfig) *AlertService {
 	return &AlertService{
-		analyzer:  analyzer,
-		alertRepo: alertRepo,
-		logger:    logger,
-		aiConfig:  aiConfig,
-		queue:     make(chan model.AlertPayload, aiConfig.QueueSize),
+		analyzer:     analyzer,
+		alertRepo:    alertRepo,
+		logger:       logger,
+		notifyClient: notifyClient,
+		aiConfig:     aiConfig,
+		queue:        make(chan model.AlertPayload, aiConfig.QueueSize),
 	}
 }
 
@@ -60,7 +63,6 @@ func (s *AlertService) Process(ctx context.Context, payload *model.AlertPayload)
 	default:
 		s.logger.Error("告警处理队列已满，告警未入队", "count", len(payload.Alerts), "status", payload.Status)
 
-		// 这里不要返回 error，否则 handler 会返回 500，Alertmanager 会继续重试。
 		return &model.AlertResult{
 			AlertCount: len(payload.Alerts),
 			Status:     payload.Status,
@@ -89,7 +91,14 @@ func (s *AlertService) processQueuedPayload(ctx context.Context, payload *model.
 		}
 	}
 
-	fmt.Printf("AI 分析结果: %s\n", analysisStr)
+	// fmt.Printf("AI 分析结果: %s\n", analysisStr)
+
+	if analysis.ShouldNotify {
+		s.notifyClient.Notify(ctx, notify.Message{
+			Title: analysis.NotifyTitle,
+			Body:  analysis.NotifyContent,
+		})
+	}
 
 	for _, alert := range payload.Alerts {
 		record := &model.AlertRecord{

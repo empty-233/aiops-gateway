@@ -4,22 +4,36 @@ server:
 
 ai:
   api_key: "YOUR_API_KEY"
-  model: "claude-sonnet-4-20250514"
-  prompt: "System load above 80% or disk IO above 90%"
+  model: "gpt-4"
+  channel: "compatible-openai"
+  base_url: "https://api.openai.com/v1"
+  prompt: "你是 AIOps Gateway 的告警分析助手,请根据以下提供的信息进行分析。"
   timeout: 30s
   temperature: 0.9
+  queue_size: 100
+  worker_count: 1
 
 database:
   dsn: "data/log-analyzer.db"
 
 query:
-  query_range_time: 1h
-  query_step: 1m
+  range_time: 1h
+  step: 1m
 
 logs:
   max_lines: 50
   sources:
     - label_key: "job"
-      label_value: "syslog"
+      label_value: "your_job_name"
+      fuzzy_match: false
       type: file
-      path: "/var/log/syslog"
+      path: "/path/to/your/log/file.log"
+
+notify:
+  enabled: true
+  channels:
+    - name: "notification-channel"
+      type: "bark"
+      enabled: true
+      server_url: "https://api.day.app"
+      key: "YOUR_NOTIFICATION_KEY"

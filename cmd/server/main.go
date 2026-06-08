@@ -1,11 +1,11 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"log/slog"
 	"os"
-	"context"
 
 	"aiops-gateway/internal/app"
 	"aiops-gateway/internal/config"
@@ -40,6 +40,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("初始化 LLM client 失败: %v", err)
 	}
+	notifyClient, err := app.NewNotifyClient(cfg.Notify, logger)
+	if err != nil {
+		log.Fatalf("初始化 Notify client 失败: %v", err)
+	}
 
 	analyzer := service.NewAIAnalyzer(
 		cfg.AI,
@@ -48,7 +52,7 @@ func main() {
 		alertRepo,
 		llmClient,
 	)
-	alertService := service.NewAlertService(analyzer, alertRepo, logger, cfg.AI)
+	alertService := service.NewAlertService(analyzer, alertRepo, logger, notifyClient, cfg.AI)
 	alertService.StartWorkers(appCtx)
 	webhookHandler := handler.NewWebhookHandler(alertService, logger)
 

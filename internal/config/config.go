@@ -11,6 +11,7 @@ import (
 
 type AIChannel string
 type SourceType string
+type NotifyChannelType string
 
 const (
 	AIChannelCompatibleOpenAI AIChannel = "compatible-openai"
@@ -19,6 +20,9 @@ const (
 	SourceTypeFile     SourceType = "file"
 	SourceTypeJournald SourceType = "journald"
 )
+const (
+	NotifyChannelTypeBark NotifyChannelType = "bark"
+)
 
 type Config struct {
 	Server   ServerConfig   `mapstructure:"server" validate:"required"`
@@ -26,6 +30,7 @@ type Config struct {
 	Database DatabaseConfig `mapstructure:"database" validate:"required"`
 	Query    QueryConfig    `mapstructure:"query" validate:"required"`
 	Logs     LogsConfig     `mapstructure:"logs"`
+	Notify   NotifyConfig   `mapstructure:"notify"`
 }
 
 type ServerConfig struct {
@@ -65,6 +70,20 @@ type SourceConfig struct {
 	FuzzyMatch bool   `mapstructure:"fuzzy_match"`
 	Type       string `mapstructure:"type" validate:"required,oneof=file journald"`
 	Path       string `mapstructure:"path" validate:"required_if=type file"`
+}
+
+type NotifyConfig struct {
+	Enabled  bool                  `mapstructure:"enabled"`
+	Timeout  time.Duration         `mapstructure:"timeout"`
+	Channels []NotifyChannelConfig `mapstructure:"channels" validate:"dive"`
+}
+
+type NotifyChannelConfig struct {
+	Name      string `mapstructure:"name"`
+	Type      string `mapstructure:"type" validate:"required,oneof=bark"`
+	Enabled   bool   `mapstructure:"enabled"`
+	ServerURL string `mapstructure:"server_url"`
+	Key       string `mapstructure:"key" validate:"required"`
 }
 
 func Load(path string) (*Config, error) {
