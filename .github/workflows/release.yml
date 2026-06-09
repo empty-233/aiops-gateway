@@ -11,6 +11,8 @@ permissions:
 env:
   APP_NAME: aiops-gateway
   CGO_ENABLED: '1'
+  DOCKERHUB_IMAGE: kongwu233/aiops-gateway
+  GHCR_IMAGE: ghcr.io/${{ github.repository_owner }}/aiops-gateway
 
 jobs:
   build:
@@ -78,16 +80,113 @@ jobs:
       contents: write
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
       - name: Download artifacts
         uses: actions/download-artifact@v8
         with:
           path: dist
           merge-multiple: true
 
+      - name: Generate changelog
+        id: changelog
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          previous_tag="$(git tag --sort=-version:refname | grep -v "^${GITHUB_REF_NAME}$" | head -n1 || true)"
+
+          if [[ -z "${previous_tag}" ]]; then
+            {
+              echo "changelog<<EOF"
+              echo "### Changes"
+              echo ""
+              echo "- Initial release"
+              echo "EOF"
+            } >> "${GITHUB_OUTPUT}"
+          else
+            {
+              echo "changelog<<EOF"
+              echo "### Changes since ${previous_tag}"
+              echo ""
+              git log --pretty=format:"- %s (%h)" "${previous_tag}..${GITHUB_REF_NAME}"
+              echo ""
+              echo "EOF"
+            } >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Create release notes
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cat > release_notes.md <<'RELEASE_NOTES_EOF'
+          ${{ steps.changelog.outputs.changelog }}
+
+          ## Docker
+
+          Docker Hub:
+
+          ```bash
+          docker pull ${{ env.DOCKERHUB_IMAGE }}:${{ github.ref_name }}
+          docker run -d \
+            --name aiops-gateway \
+            -p 8080:8080 \
+            -v "$PWD/configs/config.yaml:/app/configs/config.yaml:ro" \
+            -v "$PWD/data:/app/data" \
+            ${{ env.DOCKERHUB_IMAGE }}:${{ github.ref_name }}
+          ```
+
+          GitHub Container Registry:
+
+          ```bash
+          docker pull ${{ env.GHCR_IMAGE }}:${{ github.ref_name }}
+          ```
+
+          ## Binary Archives
+
+          Download the matching Linux archive from the assets below:
+
+          - `${{ env.APP_NAME }}-linux-amd64.tar.gz`
+          - `${{ env.APP_NAME }}-linux-arm64.tar.gz`
+          - `.sha256` checksum files
+
+          Verify a downloaded archive:
+
+          ```bash
+          sha256sum -c ${{ env.APP_NAME }}-linux-amd64.tar.gz.sha256
+          ```
+
+          ## Links
+
+          - Docker Hub: https://hub.docker.com/r/kongwu233/aiops-gateway
+          - GitHub Container Registry: https://ghcr.io/${{ github.repository_owner }}/aiops-gateway
+          - Source Code: https://github.com/${{ github.repository }}/tree/${{ github.ref_name }}
+          RELEASE_NOTES_EOF
+
       - name: Create or update release
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
-          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          body_path: release_notes.md
           files: dist/*
+
+      - name: Output release details
+        shell: bash
+        run: |
+          {
+            echo "### Release Created"
+            echo ""
+            echo "**Tag:** ${GITHUB_REF_NAME}"
+            echo "**URL:** https://github.com/${{ github.repository }}/releases/tag/${GITHUB_REF_NAME}"
+            echo ""
+            echo "**Assets:**"
+            echo "- \`${APP_NAME}-linux-amd64.tar.gz\`"
+            echo "- \`${APP_NAME}-linux-arm64.tar.gz\`"
+            echo "- \`.sha256\` checksum files"
+          } >> "${GITHUB_STEP_SUMMARY}"
