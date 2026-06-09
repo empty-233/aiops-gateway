@@ -155,10 +155,10 @@ curl -X POST http://localhost:8080/webhook/prometheus \
 
 ## Docker 部署
 
-构建镜像：
+推荐直接使用 Docker Hub 中的多架构镜像：
 
 ```bash
-docker build -t aiops-gateway .
+docker pull kongwu233/aiops-gateway:latest
 ```
 
 启动容器：
@@ -169,7 +169,19 @@ docker run -d \
   -p 8080:8080 \
   -v "$PWD/configs/config.yaml:/app/configs/config.yaml:ro" \
   -v "$PWD/data:/app/data" \
-  aiops-gateway
+  kongwu233/aiops-gateway:latest
+```
+
+也可以使用 GitHub Container Registry 镜像：
+
+```bash
+docker pull ghcr.io/kongwu233/aiops-gateway:latest
+```
+
+也可以从源码本地构建镜像：
+
+```bash
+docker build -t aiops-gateway .
 ```
 
 如需采集宿主机日志，将日志目录挂载到容器内，并在配置中使用容器内路径。
