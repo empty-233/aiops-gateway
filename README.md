@@ -50,7 +50,7 @@ internal/repository/     数据存储
 
 - Go 1.25+
 - 可访问的 LLM 服务
-- 可写入的 SQLite 数据目录
+- 可访问的 MySQL 实例，或可写入的 SQLite 数据目录
 - 可访问的指标服务和日志来源
 
 ## 快速开始
@@ -110,7 +110,9 @@ AIOPS_AI_API_KEY=your-api-key
 | `ai.timeout` | 单次分析超时时间 |
 | `ai.queue_size` | 告警处理队列大小 |
 | `ai.worker_count` | 后台 worker 数量 |
-| `database.dsn` | SQLite 数据库路径 |
+| `database.driver` | 数据库类型，支持 `mysql` 或 `sqlite` |
+| `database.mysql` | MySQL 连接配置 |
+| `database.sqlite.path` | SQLite 数据库文件路径 |
 | `query.range_time` | 指标查询回看窗口 |
 | `query.step` | 指标查询步长 |
 | `logs.sources` | 日志来源列表 |
@@ -171,6 +173,8 @@ docker run -d \
   -v "$PWD/data:/app/data" \
   kongwu233/aiops-gateway:latest
 ```
+
+使用 MySQL 时，请确保容器能访问配置中的数据库地址；使用 SQLite 时，保留 `data` 目录挂载用于持久化数据库文件。
 
 也可以使用 GitHub Container Registry 镜像：
 

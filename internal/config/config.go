@@ -56,7 +56,23 @@ type QueryConfig struct {
 }
 
 type DatabaseConfig struct {
-	DSN string `mapstructure:"dsn" validate:"required"`
+	Driver string       `mapstructure:"driver" validate:"required,oneof=sqlite mysql"`
+	SQLite SQLiteConfig `mapstructure:"sqlite" validate:"-"`
+	MySQL  MySQLConfig  `mapstructure:"mysql" validate:"-"`
+}
+
+type SQLiteConfig struct {
+	Path string `mapstructure:"path" validate:"required"`
+}
+
+type MySQLConfig struct {
+	Host     string `mapstructure:"host" validate:"required"`
+	Port     int    `mapstructure:"port" validate:"required,gt=0,lte=65535"`
+	Username string `mapstructure:"username" validate:"required"`
+	Password string `mapstructure:"password" validate:"required"`
+	Database string `mapstructure:"database" validate:"required"`
+	Charset  string `mapstructure:"charset" validate:"required"`
+	Loc      string `mapstructure:"loc" validate:"required"`
 }
 
 type LogsConfig struct {
@@ -114,6 +130,7 @@ func (c *Config) Validate() error {
 	validate := validator.New()
 
 	validate.RegisterStructValidation(validateAIConfig, AIConfig{})
+	validate.RegisterStructValidation(validateDatabaseConfig(validate), DatabaseConfig{})
 
 	return validate.Struct(c)
 }
@@ -122,5 +139,22 @@ func validateAIConfig(sl validator.StructLevel) {
 
 	if strings.Contains(string(ai.Channel), "compatible") && strings.TrimSpace(ai.BaseURL) == "" {
 		sl.ReportError(ai.BaseURL, "BaseURL", "base_url", "required_for_compatible_channel", "")
+	}
+}
+func validateDatabaseConfig(v *validator.Validate) validator.StructLevelFunc {
+	return func(sl validator.StructLevel) {
+		cfg := sl.Current().Interface().(DatabaseConfig)
+
+		switch cfg.Driver {
+		case "sqlite":
+			if err := v.Struct(cfg.SQLite); err != nil {
+				sl.ReportError(cfg.SQLite, "SQLite", "sqlite", "required_for_sqlite", "")
+			}
+
+		case "mysql":
+			if err := v.Struct(cfg.MySQL); err != nil {
+				sl.ReportError(cfg.MySQL, "MySQL", "mysql", "required_for_mysql", "")
+			}
+		}
 	}
 }

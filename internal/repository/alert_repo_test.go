@@ -35,13 +35,13 @@ func TestAlertRepository_Save(t *testing.T) {
 	ctx := context.Background()
 
 	record := &model.AlertRecord{
-		Status:      "firing",
-		AlertName:   "HighCPU",
-		Severity:    "critical",
-		Instance:    "server-01",
-		Summary:     "CPU 超过 90%",
-		Fingerprint: "fp-highcpu",
-		Analysis:    "建议检查进程占用",
+		Status:         "firing",
+		AlertName:      "HighCPU",
+		Severity:       "critical",
+		Instance:       "server-01",
+		Summary:        "CPU 超过 90%",
+		Fingerprint:    "fp-highcpu",
+		AnalysisResult: "建议检查进程占用",
 	}
 
 	err := repo.Save(ctx, record)

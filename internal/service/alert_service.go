@@ -102,15 +102,15 @@ func (s *AlertService) processQueuedPayload(ctx context.Context, payload *model.
 
 	for _, alert := range payload.Alerts {
 		record := &model.AlertRecord{
-			Status:      alert.Status,
-			AlertName:   alert.Labels["alertname"],
-			Severity:    alert.Labels["severity"],
-			Instance:    alert.Labels["instance"],
-			Summary:     alert.Annotations["summary"],
-			Description: alert.Annotations["description"],
-			Fingerprint: alert.Fingerprint,
-			Analysis:    analysisStr,
-			StartsAt:    alert.StartsAt.String(),
+			Status:         alert.Status,
+			AlertName:      alert.Labels["alertname"],
+			Severity:       alert.Labels["severity"],
+			Instance:       alert.Labels["instance"],
+			Summary:        alert.Annotations["summary"],
+			Description:    alert.Annotations["description"],
+			Fingerprint:    alert.Fingerprint,
+			AnalysisResult: analysisStr,
+			StartsAt:       alert.StartsAt,
 		}
 		if err := s.alertRepo.Save(ctx, record); err != nil {
 			s.logger.Error("存储告警记录失败", "error", err)

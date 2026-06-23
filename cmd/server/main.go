@@ -30,7 +30,7 @@ func main() {
 
 	slog.SetDefault(logger)
 
-	db, err := database.Open(cfg.Database.DSN)
+	db, err := database.Open(cfg.Database)
 	if err != nil {
 		log.Fatalf("数据库初始化失败: %v", err)
 	}
